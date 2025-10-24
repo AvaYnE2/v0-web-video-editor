@@ -34,6 +34,8 @@ export function VideoUpload({ onUploadComplete }: VideoUploadProps) {
     setIsLoading(true)
 
     try {
+      const data = await file.arrayBuffer()
+
       const url = URL.createObjectURL(file)
       const video = document.createElement("video")
       video.preload = "metadata"
@@ -51,6 +53,7 @@ export function VideoUpload({ onUploadComplete }: VideoUploadProps) {
         type: file.type,
         duration: video.duration,
         file,
+        data, // Store file data in memory
       }
 
       onUploadComplete(videoFile)

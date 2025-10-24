@@ -205,10 +205,9 @@ export function VideoTimeline({ videoFile, onReset, isProcessing, setIsProcessin
       const inputFileName = `input.${fileExtension}`
       const outputFileName = `output.${fileExtension}`
 
-      console.log("[v0] Reading video file...")
-      const arrayBuffer = await videoFile.file.arrayBuffer()
-      const videoData = new Uint8Array(arrayBuffer)
-      console.log("[v0] Video file read successfully, size:", videoData.byteLength)
+      console.log("[v0] Using pre-loaded video data...")
+      const videoData = new Uint8Array(videoFile.data)
+      console.log("[v0] Video data ready, size:", videoData.byteLength)
 
       console.log("[v0] Writing file to FFmpeg...")
       await ffmpeg.writeFile(inputFileName, videoData)

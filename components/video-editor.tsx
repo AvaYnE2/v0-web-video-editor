@@ -12,6 +12,7 @@ export type VideoFile = {
   type: string
   duration?: number
   file: File
+  data: ArrayBuffer // File data stored in memory to avoid read errors
 }
 
 export function VideoEditor() {
