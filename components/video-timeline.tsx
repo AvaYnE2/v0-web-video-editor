@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Scissors, RotateCcw, Play, Pause, Download, Loader2 } from "lucide-react"
 import type { VideoFile } from "@/components/video-editor"
 import { FFmpeg } from "@ffmpeg/ffmpeg"
-import { fetchFile, toBlobURL } from "@ffmpeg/util"
+import { fetchFile } from "@ffmpeg/util"
 import { useToast } from "@/hooks/use-toast"
 import { Progress } from "@/components/ui/progress"
 
@@ -45,18 +45,11 @@ export function VideoTimeline({ videoFile, onReset, isProcessing, setIsProcessin
           setProcessingProgress(Math.round(progress * 100))
         })
 
-        console.log("[v0] Loading FFmpeg core files...")
         const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd"
 
-        const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript")
-        console.log("[v0] Core JS loaded")
-
-        const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm")
-        console.log("[v0] WASM loaded")
-
         await ffmpeg.load({
-          coreURL,
-          wasmURL,
+          coreURL: `${baseURL}/ffmpeg-core.js`,
+          wasmURL: `${baseURL}/ffmpeg-core.wasm`,
         })
 
         console.log("[v0] FFmpeg loaded successfully")
@@ -214,7 +207,7 @@ export function VideoTimeline({ videoFile, onReset, isProcessing, setIsProcessin
       const outputFileName = `output.${fileExtension}`
 
       console.log("[v0] Fetching video file...")
-      const videoData = await fetchFile(videoFile.url)
+      const videoData = await fetchFile(videoFile.file)
       console.log("[v0] Video file fetched, size:", videoData.byteLength)
 
       console.log("[v0] Writing file to FFmpeg...")

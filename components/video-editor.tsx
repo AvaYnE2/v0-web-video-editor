@@ -6,11 +6,12 @@ import { VideoTimeline } from "@/components/video-timeline"
 import { Card } from "@/components/ui/card"
 
 export type VideoFile = {
-  url: string // Now a blob URL created with URL.createObjectURL
+  url: string // Blob URL for video preview
   filename: string
   size: number
   type: string
   duration?: number
+  file: File
 }
 
 export function VideoEditor() {

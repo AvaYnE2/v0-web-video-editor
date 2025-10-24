@@ -50,6 +50,7 @@ export function VideoUpload({ onUploadComplete }: VideoUploadProps) {
         size: file.size,
         type: file.type,
         duration: video.duration,
+        file,
       }
 
       onUploadComplete(videoFile)
