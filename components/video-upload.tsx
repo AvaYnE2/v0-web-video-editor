@@ -34,11 +34,7 @@ export function VideoUpload({ onUploadComplete }: VideoUploadProps) {
     setIsLoading(true)
 
     try {
-      // Chrome invalidates File references, but Blobs persist
-      const fileData = await file.arrayBuffer()
-      const blob = new Blob([fileData], { type: file.type })
-      const url = URL.createObjectURL(blob)
-
+      const url = URL.createObjectURL(file)
       const video = document.createElement("video")
       video.preload = "metadata"
 
@@ -54,7 +50,7 @@ export function VideoUpload({ onUploadComplete }: VideoUploadProps) {
         size: file.size,
         type: file.type,
         duration: video.duration,
-        file: blob as File, // Store the Blob as File (compatible interface)
+        file,
       }
 
       onUploadComplete(videoFile)

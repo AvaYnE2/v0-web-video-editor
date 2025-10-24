@@ -11,7 +11,7 @@ export type VideoFile = {
   size: number
   type: string
   duration?: number
-  file: File | Blob // Accept Blob to support Chrome's persistent storage
+  file: File // Original file object
   data?: ArrayBuffer // Optional: loaded lazily when needed for trimming
 }
 
