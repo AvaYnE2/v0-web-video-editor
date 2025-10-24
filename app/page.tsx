@@ -1,5 +1,5 @@
 import { VideoEditor } from "@/components/video-editor"
-import { Scissors } from "lucide-react"
+import Image from "next/image"
 
 export default function Home() {
   return (
@@ -7,9 +7,7 @@ export default function Home() {
       <div className="container mx-auto px-4 py-12 max-w-6xl">
         <header className="mb-12 text-center">
           <div className="flex justify-center items-center gap-3 mb-4">
-            <div className="rounded-xl bg-primary/10 p-3" aria-hidden="true">
-              <Scissors className="h-8 w-8 text-primary" aria-label="Scissors icon" />
-            </div>
+            <Image src="/logo.jpg" alt="Trimflow logo" width={48} height={48} className="rounded-xl" priority />
             <h1 className="text-5xl font-bold text-foreground tracking-tight">Trimflow</h1>
           </div>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">

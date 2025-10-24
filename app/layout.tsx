@@ -20,6 +20,13 @@ export const metadata: Metadata = {
   title: "Trimflow - Free Online Video Trimmer | Trim Videos in Browser",
   description:
     "Trim and cut videos online for free. Fast, secure browser-based video editor supporting MP4, MOV, and AVI. No upload required - your videos stay private on your device.",
+  icons: {
+    icon: [
+      { url: "/logo.jpg", sizes: "any" },
+      { url: "/logo.jpg", type: "image/jpeg" },
+    ],
+    apple: "/logo.jpg",
+  },
   keywords: [
     "video trimmer",
     "online video editor",
