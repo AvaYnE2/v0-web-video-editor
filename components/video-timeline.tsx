@@ -122,11 +122,12 @@ export function VideoTimeline({ videoFile, onReset, isProcessing, setIsProcessin
     return `${mins}:${secs.toString().padStart(2, "0")}`
   }
 
-  const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     if (!timelineRef.current || !videoRef.current) return
 
     const rect = timelineRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX
+    const x = clientX - rect.left
     const percentage = x / rect.width
     const time = percentage * duration
 
@@ -134,11 +135,11 @@ export function VideoTimeline({ videoFile, onReset, isProcessing, setIsProcessin
     setCurrentTime(time)
   }
 
-  const handleMarkerDrag = (e: React.MouseEvent, isStart: boolean) => {
+  const handleMarkerDrag = (clientX: number, isStart: boolean) => {
     if (!timelineRef.current) return
 
     const rect = timelineRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left
+    const x = clientX - rect.left
     const percentage = Math.max(0, Math.min(1, x / rect.width))
     const time = percentage * duration
 
@@ -149,26 +150,34 @@ export function VideoTimeline({ videoFile, onReset, isProcessing, setIsProcessin
     }
   }
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMove = (e: MouseEvent | TouchEvent) => {
+    e.preventDefault() // Prevent scrolling on mobile
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX
+
     if (isDraggingStart) {
-      handleMarkerDrag(e as any, true)
+      handleMarkerDrag(clientX, true)
     } else if (isDraggingEnd) {
-      handleMarkerDrag(e as any, false)
+      handleMarkerDrag(clientX, false)
     }
   }
 
-  const handleMouseUp = () => {
+  const handleEnd = () => {
     setIsDraggingStart(false)
     setIsDraggingEnd(false)
   }
 
   useEffect(() => {
     if (isDraggingStart || isDraggingEnd) {
-      window.addEventListener("mousemove", handleMouseMove)
-      window.addEventListener("mouseup", handleMouseUp)
+      window.addEventListener("mousemove", handleMove)
+      window.addEventListener("mouseup", handleEnd)
+      window.addEventListener("touchmove", handleMove, { passive: false })
+      window.addEventListener("touchend", handleEnd)
+
       return () => {
-        window.removeEventListener("mousemove", handleMouseMove)
-        window.removeEventListener("mouseup", handleMouseUp)
+        window.removeEventListener("mousemove", handleMove)
+        window.removeEventListener("mouseup", handleEnd)
+        window.removeEventListener("touchmove", handleMove)
+        window.removeEventListener("touchend", handleEnd)
       }
     }
   }, [isDraggingStart, isDraggingEnd])
@@ -300,8 +309,9 @@ export function VideoTimeline({ videoFile, onReset, isProcessing, setIsProcessin
 
         <div
           ref={timelineRef}
-          className="relative h-24 bg-secondary/50 rounded-xl cursor-pointer select-none overflow-hidden ring-1 ring-border transition-all hover:ring-primary/50"
+          className="relative h-32 md:h-24 bg-secondary/50 rounded-xl cursor-pointer select-none overflow-visible ring-1 ring-border transition-all hover:ring-primary/50 touch-none"
           onClick={handleTimelineClick}
+          onTouchStart={handleTimelineClick}
         >
           <div
             className="absolute top-0 bottom-0 bg-primary/20 border-l-4 border-r-4 border-primary transition-all"
@@ -312,28 +322,50 @@ export function VideoTimeline({ videoFile, onReset, isProcessing, setIsProcessin
           />
 
           <div
-            className="absolute top-0 bottom-0 w-1 bg-foreground z-10 transition-all"
+            className="absolute top-0 bottom-0 w-1 bg-foreground z-10 transition-all pointer-events-none"
             style={{ left: `${currentPercentage}%` }}
           >
             <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-4 h-4 bg-foreground rounded-full shadow-lg" />
           </div>
 
-          <div
-            className="absolute top-0 bottom-0 w-1.5 bg-primary cursor-ew-resize z-20 hover:w-3 transition-all group"
-            style={{ left: `${startPercentage}%` }}
-            onMouseDown={() => setIsDraggingStart(true)}
-          >
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground text-xs font-semibold px-3 py-1.5 rounded-md whitespace-nowrap shadow-lg">
+          <div className="absolute top-0 bottom-0 z-20 group" style={{ left: `${startPercentage}%` }}>
+            <div
+              className={`absolute inset-0 w-2 md:w-1.5 bg-primary transition-all ${isDraggingStart ? "w-3" : "group-hover:w-3"}`}
+            />
+
+            <div
+              className="absolute top-0 bottom-0 -left-6 w-12 cursor-ew-resize"
+              onMouseDown={() => setIsDraggingStart(true)}
+              onTouchStart={(e) => {
+                e.stopPropagation()
+                setIsDraggingStart(true)
+              }}
+            />
+
+            <div
+              className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground text-xs font-semibold px-3 py-2 md:py-1.5 rounded-md whitespace-nowrap shadow-lg transition-all ${isDraggingStart ? "scale-110" : ""}`}
+            >
               {formatTime(startTime)}
             </div>
           </div>
 
-          <div
-            className="absolute top-0 bottom-0 w-1.5 bg-primary cursor-ew-resize z-20 hover:w-3 transition-all group"
-            style={{ left: `${endPercentage}%` }}
-            onMouseDown={() => setIsDraggingEnd(true)}
-          >
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground text-xs font-semibold px-3 py-1.5 rounded-md whitespace-nowrap shadow-lg">
+          <div className="absolute top-0 bottom-0 z-20 group" style={{ left: `${endPercentage}%` }}>
+            <div
+              className={`absolute inset-0 w-2 md:w-1.5 bg-primary transition-all ${isDraggingEnd ? "w-3" : "group-hover:w-3"}`}
+            />
+
+            <div
+              className="absolute top-0 bottom-0 -left-6 w-12 cursor-ew-resize"
+              onMouseDown={() => setIsDraggingEnd(true)}
+              onTouchStart={(e) => {
+                e.stopPropagation()
+                setIsDraggingEnd(true)
+              }}
+            />
+
+            <div
+              className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground text-xs font-semibold px-3 py-2 md:py-1.5 rounded-md whitespace-nowrap shadow-lg transition-all ${isDraggingEnd ? "scale-110" : ""}`}
+            >
               {formatTime(endTime)}
             </div>
           </div>
