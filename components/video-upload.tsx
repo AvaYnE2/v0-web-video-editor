@@ -22,11 +22,11 @@ const getMaxFileSize = () => {
   const memory = (navigator as any).deviceMemory // In GB, only available in Chrome
   
   if (isMobile) {
-    return 256 * 1024 * 1024 // 256MB for mobile
+    return 1024 * 1024 * 1024 * 2 // 2GB for mobile
   } else if (memory && memory <= 4) {
     return 512 * 1024 * 1024 // 512MB for low-memory devices
   } else {
-    return 1024 * 1024 * 1024 // 1GB for desktop
+    return 1024 * 1024 * 1024 * 2 // 2GB for desktop
   }
 }
 
