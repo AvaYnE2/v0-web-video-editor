@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Scissors, RotateCcw, Play, Pause, Download, Loader2 } from "lucide-react"
 import type { VideoFile } from "@/components/video-editor"
 import { FFmpeg } from "@ffmpeg/ffmpeg"
-import { fetchFile } from "@ffmpeg/util"
 import { useToast } from "@/hooks/use-toast"
 import { Progress } from "@/components/ui/progress"
 
@@ -206,9 +205,10 @@ export function VideoTimeline({ videoFile, onReset, isProcessing, setIsProcessin
       const inputFileName = `input.${fileExtension}`
       const outputFileName = `output.${fileExtension}`
 
-      console.log("[v0] Fetching video file...")
-      const videoData = await fetchFile(videoFile.file)
-      console.log("[v0] Video file fetched, size:", videoData.byteLength)
+      console.log("[v0] Reading video file...")
+      const arrayBuffer = await videoFile.file.arrayBuffer()
+      const videoData = new Uint8Array(arrayBuffer)
+      console.log("[v0] Video file read successfully, size:", videoData.byteLength)
 
       console.log("[v0] Writing file to FFmpeg...")
       await ffmpeg.writeFile(inputFileName, videoData)
