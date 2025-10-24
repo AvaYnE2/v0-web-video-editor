@@ -343,7 +343,7 @@ export function VideoTimeline({ videoFile, onReset, isProcessing, setIsProcessin
             />
 
             <div
-              className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground text-xs font-semibold px-3 py-2 md:py-1.5 rounded-md whitespace-nowrap shadow-lg transition-all ${isDraggingStart ? "scale-110" : ""}`}
+              className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground text-xs font-semibold px-3 py-2 md:py-1.5 rounded-md whitespace-nowrap shadow-lg transition-all pointer-events-none ${isDraggingStart ? "scale-110" : ""}`}
             >
               {formatTime(startTime)}
             </div>
@@ -364,7 +364,7 @@ export function VideoTimeline({ videoFile, onReset, isProcessing, setIsProcessin
             />
 
             <div
-              className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground text-xs font-semibold px-3 py-2 md:py-1.5 rounded-md whitespace-nowrap shadow-lg transition-all ${isDraggingEnd ? "scale-110" : ""}`}
+              className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground text-xs font-semibold px-3 py-2 md:py-1.5 rounded-md whitespace-nowrap shadow-lg transition-all pointer-events-none ${isDraggingEnd ? "scale-110" : ""}`}
             >
               {formatTime(endTime)}
             </div>
