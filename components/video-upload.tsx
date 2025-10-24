@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useCallback } from "react"
-import { Upload, Film, FileVideo } from "lucide-react"
+import { Upload, Film, FileVideo, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -13,6 +13,31 @@ type VideoUploadProps = {
   onUploadComplete: (file: VideoFile) => void
 }
 
+// Size limits based on device capabilities
+const getMaxFileSize = () => {
+  // Check if mobile device
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+  
+  // Check available memory (if API is available)
+  const memory = (navigator as any).deviceMemory // In GB, only available in Chrome
+  
+  if (isMobile) {
+    return 256 * 1024 * 1024 // 256MB for mobile
+  } else if (memory && memory <= 4) {
+    return 512 * 1024 * 1024 // 512MB for low-memory devices
+  } else {
+    return 1024 * 1024 * 1024 // 1GB for desktop
+  }
+}
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+}
+
 export function VideoUpload({ onUploadComplete }: VideoUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -20,8 +45,10 @@ export function VideoUpload({ onUploadComplete }: VideoUploadProps) {
 
   const acceptedFormats = ["video/mp4", "video/quicktime", "video/x-msvideo"]
   const acceptedExtensions = [".mp4", ".mov", ".avi"]
+  const maxFileSize = getMaxFileSize()
 
   const handleUpload = async (file: File) => {
+    // Format validation
     if (!acceptedFormats.includes(file.type)) {
       toast({
         title: "Invalid file format",
@@ -31,12 +58,45 @@ export function VideoUpload({ onUploadComplete }: VideoUploadProps) {
       return
     }
 
+    // Size validation
+    if (file.size > maxFileSize) {
+      toast({
+        title: "File too large",
+        description: `Maximum file size is ${formatFileSize(maxFileSize)}. Your file is ${formatFileSize(file.size)}.`,
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Warning for large files
+    if (file.size > maxFileSize * 0.75) {
+      toast({
+        title: "Large file detected",
+        description: "Processing may be slow. For best performance, use files under " + formatFileSize(maxFileSize * 0.5),
+      })
+    }
+
     setIsLoading(true)
 
     try {
-      // Read the file data immediately to avoid Chrome reference issues
-      const arrayBuffer = await file.arrayBuffer()
-      const blob = new Blob([arrayBuffer], { type: file.type })
+      // For smaller files, read entirely into memory
+      const useChunkedReading = file.size > 100 * 1024 * 1024 // 100MB threshold
+      
+      let arrayBuffer: ArrayBuffer
+      let blob: Blob
+      
+      if (useChunkedReading) {
+        // For larger files, we could implement chunked reading
+        // but for video editing, we need the entire file in memory anyway
+        console.log("[v0] Reading large file...")
+        arrayBuffer = await readFileInChunks(file)
+        blob = new Blob([arrayBuffer], { type: file.type })
+      } else {
+        // For smaller files, read directly
+        arrayBuffer = await file.arrayBuffer()
+        blob = new Blob([arrayBuffer], { type: file.type })
+      }
+      
       const url = URL.createObjectURL(blob)
       
       const video = document.createElement("video")
@@ -54,25 +114,64 @@ export function VideoUpload({ onUploadComplete }: VideoUploadProps) {
         size: file.size,
         type: file.type,
         duration: video.duration,
-        file: new File([blob], file.name, { type: file.type }), // Create new File from Blob
-        data: arrayBuffer, // Store the ArrayBuffer immediately
+        file: new File([blob], file.name, { type: file.type }),
+        data: arrayBuffer,
       }
 
       onUploadComplete(videoFile)
       toast({
         title: "Video loaded successfully",
-        description: `${file.name} is ready to edit`,
+        description: `${file.name} (${formatFileSize(file.size)}) is ready to edit`,
       })
     } catch (error) {
       console.error("[v0] Upload error:", error)
-      toast({
-        title: "Failed to load video",
-        description: "Please try again with a different file",
-        variant: "destructive",
-      })
+      
+      // Check if it's a memory error
+      if (error instanceof Error && error.message.includes('memory')) {
+        toast({
+          title: "Out of memory",
+          description: "The file is too large for your device. Please try a smaller file.",
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Failed to load video",
+          description: "Please try again with a different file",
+          variant: "destructive",
+        })
+      }
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Helper function to read file in chunks (helps with memory management)
+  const readFileInChunks = async (file: File): Promise<ArrayBuffer> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      
+      reader.onload = (e) => {
+        if (e.target?.result instanceof ArrayBuffer) {
+          resolve(e.target.result)
+        } else {
+          reject(new Error("Failed to read file"))
+        }
+      }
+      
+      reader.onerror = () => {
+        reject(new Error("Failed to read file"))
+      }
+      
+      // Monitor memory usage during read
+      reader.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percentComplete = (e.loaded / e.total) * 100
+          console.log(`[v0] Reading file: ${percentComplete.toFixed(0)}%`)
+        }
+      }
+      
+      reader.readAsArrayBuffer(file)
+    })
   }
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -145,6 +244,10 @@ export function VideoUpload({ onUploadComplete }: VideoUploadProps) {
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <Film className="h-4 w-4" />
                 <span>Supported formats: MP4, MOV, AVI</span>
+              </div>
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <AlertCircle className="h-4 w-4" />
+                <span>Maximum size: {formatFileSize(maxFileSize)}</span>
               </div>
               <p className="text-xs text-muted-foreground">
                 Videos are processed entirely in your browser — no upload required

@@ -33,6 +33,30 @@ export function VideoTimeline({ videoFile, onReset, isProcessing, setIsProcessin
   const [ffmpegLoaded, setFfmpegLoaded] = useState(false)
   const [processingProgress, setProcessingProgress] = useState(0)
 
+
+  useEffect(() => {
+  // Monitor memory usage if available
+  if ('memory' in performance) {
+    const checkMemory = () => {
+      const memInfo = (performance as any).memory
+      const usedMB = Math.round(memInfo.usedJSHeapSize / 1024 / 1024)
+      const limitMB = Math.round(memInfo.jsHeapSizeLimit / 1024 / 1024)
+      
+      if (usedMB > limitMB * 0.9) {
+        console.warn(`[v0] High memory usage: ${usedMB}MB / ${limitMB}MB`)
+        toast({
+          title: "Memory Warning",
+          description: "Running low on memory. Consider reloading the page after this operation.",
+          variant: "destructive"
+        })
+      }
+    }
+    
+    const interval = setInterval(checkMemory, 5000)
+    return () => clearInterval(interval)
+  }
+}, [toast])
+
   useEffect(() => {
     const loadFFmpeg = async () => {
       try {
