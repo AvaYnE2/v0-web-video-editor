@@ -37,6 +37,7 @@ export function VideoTimeline({ videoFile, onReset, isProcessing, setIsProcessin
   useEffect(() => {
     const loadFFmpeg = async () => {
       try {
+        console.log("[v0] Starting FFmpeg load...")
         const ffmpeg = new FFmpeg()
         ffmpegRef.current = ffmpeg
 
@@ -44,17 +45,27 @@ export function VideoTimeline({ videoFile, onReset, isProcessing, setIsProcessin
           setProcessingProgress(Math.round(progress * 100))
         })
 
+        console.log("[v0] Loading FFmpeg core files...")
         const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd"
+
+        const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript")
+        console.log("[v0] Core JS loaded")
+
+        const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm")
+        console.log("[v0] WASM loaded")
+
         await ffmpeg.load({
-          coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
-          wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm"),
+          coreURL,
+          wasmURL,
         })
 
+        console.log("[v0] FFmpeg loaded successfully")
         setFfmpegLoaded(true)
       } catch (error) {
+        console.error("[v0] FFmpeg load error:", error)
         toast({
           title: "Failed to load video editor",
-          description: "Please refresh the page and try again",
+          description: "Please check your internet connection and refresh the page",
           variant: "destructive",
         })
       }
@@ -196,14 +207,20 @@ export function VideoTimeline({ videoFile, onReset, isProcessing, setIsProcessin
     setProcessingProgress(0)
 
     try {
+      console.log("[v0] Starting trim process...")
       const ffmpeg = ffmpegRef.current
       const fileExtension = videoFile.filename.split(".").pop()?.toLowerCase() || "mp4"
       const inputFileName = `input.${fileExtension}`
       const outputFileName = `output.${fileExtension}`
 
+      console.log("[v0] Fetching video file...")
       const videoData = await fetchFile(videoFile.url)
+      console.log("[v0] Video file fetched, size:", videoData.byteLength)
+
+      console.log("[v0] Writing file to FFmpeg...")
       await ffmpeg.writeFile(inputFileName, videoData)
 
+      console.log("[v0] Executing FFmpeg trim command...")
       await ffmpeg.exec([
         "-ss",
         startTime.toString(),
@@ -218,6 +235,7 @@ export function VideoTimeline({ videoFile, onReset, isProcessing, setIsProcessin
         outputFileName,
       ])
 
+      console.log("[v0] Reading trimmed video...")
       const data = await ffmpeg.readFile(outputFileName)
       const blob = new Blob([data], { type: `video/${fileExtension}` })
       const url = URL.createObjectURL(blob)
@@ -231,12 +249,18 @@ export function VideoTimeline({ videoFile, onReset, isProcessing, setIsProcessin
         description: "Your video is ready to download",
       })
 
+      console.log("[v0] Cleaning up files...")
       await ffmpeg.deleteFile(inputFileName)
       await ffmpeg.deleteFile(outputFileName)
+      console.log("[v0] Trim complete!")
     } catch (error) {
+      console.error("[v0] Trim error:", error)
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
       toast({
         title: "Failed to trim video",
-        description: error instanceof Error ? error.message : "Please try again",
+        description: errorMessage.includes("fetch")
+          ? "Network error. Please check your connection and try again."
+          : errorMessage,
         variant: "destructive",
       })
       setIsProcessing(false)
