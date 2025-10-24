@@ -186,93 +186,86 @@ export function VideoTimeline({ videoFile, onReset, isProcessing, setIsProcessin
   }, [isDraggingStart, isDraggingEnd])
 
   const handleTrim = async () => {
-    if (!ffmpegRef.current || !ffmpegLoaded) {
-      toast({
-        title: "Please wait",
-        description: "Video editor is still loading",
-      })
-      return
-    }
-
-    setIsProcessing(true)
-    setTrimmedVideoUrl(null)
-    setProcessingProgress(0)
-
-    try {
-      console.log("[v0] Starting trim process...")
-      const ffmpeg = ffmpegRef.current
-      const fileExtension = videoFile.filename.split(".").pop()?.toLowerCase() || "mp4"
-      const inputFileName = `input.${fileExtension}`
-      const outputFileName = `output.${fileExtension}`
-
-      console.log("[v0] Reading video file...")
-      let videoData: Uint8Array
-
-      if (videoFile.data) {
-        // Use pre-loaded data if available (Firefox path)
-        console.log("[v0] Using pre-loaded data")
-        videoData = new Uint8Array(videoFile.data)
-      } else {
-        // Read file now (Chrome path - lazy loading)
-        console.log("[v0] Reading file on-demand...")
-        try {
-          const arrayBuffer = await videoFile.file.arrayBuffer()
-          videoData = new Uint8Array(arrayBuffer)
-          console.log("[v0] File read successfully, size:", videoData.byteLength)
-        } catch (readError) {
-          console.error("[v0] File read error:", readError)
-          throw new Error("Failed to read video file. Please try uploading again.")
-        }
-      }
-
-      console.log("[v0] Writing file to FFmpeg...")
-      await ffmpeg.writeFile(inputFileName, videoData)
-
-      console.log("[v0] Executing FFmpeg trim command...")
-      await ffmpeg.exec([
-        "-ss",
-        startTime.toString(),
-        "-to",
-        endTime.toString(),
-        "-i",
-        inputFileName,
-        "-c",
-        "copy",
-        "-avoid_negative_ts",
-        "make_zero",
-        outputFileName,
-      ])
-
-      console.log("[v0] Reading trimmed video...")
-      const data = await ffmpeg.readFile(outputFileName)
-      const blob = new Blob([data], { type: `video/${fileExtension}` })
-      const url = URL.createObjectURL(blob)
-
-      setTrimmedVideoUrl(url)
-      setIsProcessing(false)
-      setProcessingProgress(100)
-
-      toast({
-        title: "Video trimmed successfully",
-        description: "Your video is ready to download",
-      })
-
-      console.log("[v0] Cleaning up files...")
-      await ffmpeg.deleteFile(inputFileName)
-      await ffmpeg.deleteFile(outputFileName)
-      console.log("[v0] Trim complete!")
-    } catch (error) {
-      console.error("[v0] Trim error:", error)
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
-      toast({
-        title: "Failed to trim video",
-        description: errorMessage,
-        variant: "destructive",
-      })
-      setIsProcessing(false)
-      setProcessingProgress(0)
-    }
+  if (!ffmpegRef.current || !ffmpegLoaded) {
+    toast({
+      title: "Please wait",
+      description: "Video editor is still loading",
+    })
+    return
   }
+
+  setIsProcessing(true)
+  setTrimmedVideoUrl(null)
+  setProcessingProgress(0)
+
+  try {
+    console.log("[v0] Starting trim process...")
+    const ffmpeg = ffmpegRef.current
+    const fileExtension = videoFile.filename.split(".").pop()?.toLowerCase() || "mp4"
+    const inputFileName = `input.${fileExtension}`
+    const outputFileName = `output.${fileExtension}`
+
+    console.log("[v0] Reading video file...")
+    let videoData: Uint8Array
+
+    // Always use the pre-loaded data which we now ensure exists
+    if (videoFile.data) {
+      console.log("[v0] Using pre-loaded data")
+      videoData = new Uint8Array(videoFile.data)
+    } else {
+      // Fallback: This shouldn't happen with the new approach, but keep for safety
+      console.error("[v0] Warning: No pre-loaded data found, attempting direct read...")
+      throw new Error("Video data not available. Please re-upload the video.")
+    }
+
+    console.log("[v0] Writing file to FFmpeg...")
+    await ffmpeg.writeFile(inputFileName, videoData)
+
+    console.log("[v0] Executing FFmpeg trim command...")
+    await ffmpeg.exec([
+      "-ss",
+      startTime.toString(),
+      "-to",
+      endTime.toString(),
+      "-i",
+      inputFileName,
+      "-c",
+      "copy",
+      "-avoid_negative_ts",
+      "make_zero",
+      outputFileName,
+    ])
+
+    console.log("[v0] Reading trimmed video...")
+    const data = await ffmpeg.readFile(outputFileName)
+    const blob = new Blob([data], { type: `video/${fileExtension}` })
+    const url = URL.createObjectURL(blob)
+
+    setTrimmedVideoUrl(url)
+    setIsProcessing(false)
+    setProcessingProgress(100)
+
+    toast({
+      title: "Video trimmed successfully",
+      description: "Your video is ready to download",
+    })
+
+    console.log("[v0] Cleaning up files...")
+    await ffmpeg.deleteFile(inputFileName)
+    await ffmpeg.deleteFile(outputFileName)
+    console.log("[v0] Trim complete!")
+  } catch (error) {
+    console.error("[v0] Trim error:", error)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
+    toast({
+      title: "Failed to trim video",
+      description: errorMessage,
+      variant: "destructive",
+    })
+    setIsProcessing(false)
+    setProcessingProgress(0)
+  }
+}
 
   const handleDownload = () => {
     if (!trimmedVideoUrl) return

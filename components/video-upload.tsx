@@ -34,7 +34,11 @@ export function VideoUpload({ onUploadComplete }: VideoUploadProps) {
     setIsLoading(true)
 
     try {
-      const url = URL.createObjectURL(file)
+      // Read the file data immediately to avoid Chrome reference issues
+      const arrayBuffer = await file.arrayBuffer()
+      const blob = new Blob([arrayBuffer], { type: file.type })
+      const url = URL.createObjectURL(blob)
+      
       const video = document.createElement("video")
       video.preload = "metadata"
 
@@ -50,7 +54,8 @@ export function VideoUpload({ onUploadComplete }: VideoUploadProps) {
         size: file.size,
         type: file.type,
         duration: video.duration,
-        file,
+        file: new File([blob], file.name, { type: file.type }), // Create new File from Blob
+        data: arrayBuffer, // Store the ArrayBuffer immediately
       }
 
       onUploadComplete(videoFile)
