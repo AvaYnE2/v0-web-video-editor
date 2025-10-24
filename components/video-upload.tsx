@@ -34,8 +34,6 @@ export function VideoUpload({ onUploadComplete }: VideoUploadProps) {
     setIsLoading(true)
 
     try {
-      const data = await file.arrayBuffer()
-
       const url = URL.createObjectURL(file)
       const video = document.createElement("video")
       video.preload = "metadata"
@@ -53,7 +51,6 @@ export function VideoUpload({ onUploadComplete }: VideoUploadProps) {
         type: file.type,
         duration: video.duration,
         file,
-        data, // Store file data in memory
       }
 
       onUploadComplete(videoFile)
@@ -62,6 +59,7 @@ export function VideoUpload({ onUploadComplete }: VideoUploadProps) {
         description: `${file.name} is ready to edit`,
       })
     } catch (error) {
+      console.error("[v0] Upload error:", error)
       toast({
         title: "Failed to load video",
         description: "Please try again with a different file",

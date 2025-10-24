@@ -205,9 +205,25 @@ export function VideoTimeline({ videoFile, onReset, isProcessing, setIsProcessin
       const inputFileName = `input.${fileExtension}`
       const outputFileName = `output.${fileExtension}`
 
-      console.log("[v0] Using pre-loaded video data...")
-      const videoData = new Uint8Array(videoFile.data)
-      console.log("[v0] Video data ready, size:", videoData.byteLength)
+      console.log("[v0] Reading video file...")
+      let videoData: Uint8Array
+
+      if (videoFile.data) {
+        // Use pre-loaded data if available (Firefox path)
+        console.log("[v0] Using pre-loaded data")
+        videoData = new Uint8Array(videoFile.data)
+      } else {
+        // Read file now (Chrome path - lazy loading)
+        console.log("[v0] Reading file on-demand...")
+        try {
+          const arrayBuffer = await videoFile.file.arrayBuffer()
+          videoData = new Uint8Array(arrayBuffer)
+          console.log("[v0] File read successfully, size:", videoData.byteLength)
+        } catch (readError) {
+          console.error("[v0] File read error:", readError)
+          throw new Error("Failed to read video file. Please try uploading again.")
+        }
+      }
 
       console.log("[v0] Writing file to FFmpeg...")
       await ffmpeg.writeFile(inputFileName, videoData)
@@ -250,9 +266,7 @@ export function VideoTimeline({ videoFile, onReset, isProcessing, setIsProcessin
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
       toast({
         title: "Failed to trim video",
-        description: errorMessage.includes("fetch")
-          ? "Network error. Please check your connection and try again."
-          : errorMessage,
+        description: errorMessage,
         variant: "destructive",
       })
       setIsProcessing(false)
